@@ -103,11 +103,29 @@ class IntervalTests(unittest.TestCase):
             color=False,
             now=datetime(2026, 10, 3, 5, 0),
         )
-        self.assertIn("2026-10-03（土）  画面OFF 1.0h  スリープ 0.0h", text)
+        self.assertIn("2026-10-03（土）  画面ON 3.0h  スリープ 0.0h", text)
         self.assertIn("      00   06    12    18   24", text)
         self.assertIn("画面  ·░███" + " " * 19, text)
         self.assertIn("電源  ·····" + " " * 19, text)
         self.assertNotIn("\033[", text)
+        self.assertIn("█ 画面ON/稼働", text)
+
+    def test_no_legend_omits_the_key(self) -> None:
+        events = [
+            sleepwatch.Event(datetime(2026, 10, 3, 1, 0), "display_off"),
+            sleepwatch.Event(datetime(2026, 10, 3, 2, 0), "display_on"),
+        ]
+        text = sleepwatch.render(
+            events,
+            [date(2026, 10, 3)],
+            width=30,
+            color=False,
+            now=datetime(2026, 10, 3, 5, 0),
+            legend=False,
+        )
+        self.assertNotIn("ログ開始前", text)
+        self.assertTrue(text.endswith("電源  ·····" + " " * 19 + "\n"))
+        self.assertTrue(sleepwatch.parse_args(["--no-legend"]).no_legend)
 
     def test_color_marks_display_on_and_awake(self) -> None:
         events = sleepwatch.parse_events(SAMPLE)

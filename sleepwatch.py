@@ -265,16 +265,23 @@ def bar_columns(width: int) -> int:
     return max(8, width - LABEL_COLUMNS)
 
 
-def render(events: list[Event], days: list[date], width: int, color: bool, now: datetime) -> str:
+def render(
+    events: list[Event],
+    days: list[date],
+    width: int,
+    color: bool,
+    now: datetime,
+    legend: bool = True,
+) -> str:
     columns = bar_columns(width)
     display = display_changes(events)
     power = power_changes(events)
     blocks: list[str] = []
     for day in days:
         start, end = day_window(day, now)
-        off_hours = format_hours(covered_seconds(display, start, end, "off"))
+        on_hours = format_hours(covered_seconds(display, start, end, "on"))
         sleep_hours = format_hours(covered_seconds(power, start, end, "asleep"))
-        header = f"{day.isoformat()}（{WEEKDAYS[day.weekday()]}）  画面OFF {off_hours}  スリープ {sleep_hours}"
+        header = f"{day.isoformat()}（{WEEKDAYS[day.weekday()]}）  画面ON {on_hours}  スリープ {sleep_hours}"
         display_bar = paint(
             bar_states(display, day, columns, "off", "on", now),
             color,
@@ -295,10 +302,13 @@ def render(events: list[Event], days: list[date], width: int, color: bool, now: 
                 ]
             )
         )
-    legend = "█ 画面ON/稼働   ░ 画面OFF/スリープ   · ログ開始前"
-    if not blocks:
-        return legend + "\n"
-    return "\n\n".join(blocks) + "\n\n" + legend + "\n"
+    text = "\n\n".join(blocks)
+    if legend:
+        legend_line = "█ 画面ON/稼働   ░ 画面OFF/スリープ   · ログ開始前"
+        text = legend_line if not text else text + "\n\n" + legend_line
+    if not text:
+        return ""
+    return text + "\n"
 
 
 def read_pmset_log() -> str:
@@ -318,6 +328,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--date", type=date.fromisoformat, help="この日だけ表示する（YYYY-MM-DD）。指定時は -d を使わない")
     parser.add_argument("--width", type=int, help="表示幅。省略時はターミナル幅")
     parser.add_argument("--no-color", action="store_true", help="色を付けない")
+    parser.add_argument("--no-legend", action="store_true", help="末尾の凡例を出さない")
     args = parser.parse_args(argv)
     if args.date is None and args.days < 1:
         parser.error("日数は1以上にしてください。")
@@ -342,7 +353,7 @@ def main(argv: list[str] | None = None) -> int:
     days = iter_days(now.date(), args.days, args.date)
     width = args.width or shutil.get_terminal_size(fallback=(80, 24)).columns
     color = sys.stdout.isatty() and not args.no_color
-    sys.stdout.write(render(parse_events(log), days, width, color, now))
+    sys.stdout.write(render(parse_events(log), days, width, color, now, legend=not args.no_legend))
     return 0
 
 

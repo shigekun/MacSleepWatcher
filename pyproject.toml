@@ -1,0 +1,17 @@
+[project]
+name = "macsleepwatcher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "S", email = "" }
+]
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+macsleepwatcher = "macsleepwatcher:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
